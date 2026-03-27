@@ -4,26 +4,29 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import { db } from "@/lib/firebase";
 import {
   doc, getDoc, collection, addDoc, getDocs,
-  query, where, updateDoc
+  query, where, updateDoc,
 } from "firebase/firestore";
 import {
-  ArrowLeft, MapPin, Phone, Star,
-  Hotel, UtensilsCrossed, TreePalm, LogOut, MessageSquare, Map, Images, ChevronLeft, ChevronRight
+  ArrowLeft, MapPin, Star, Bookmark,
+  Hotel, UtensilsCrossed, TreePalm, Wifi, Car,
+  Waves, Dumbbell, ConciergeBell, Clock, Utensils,
+  ChevronLeft, ChevronRight, X, BedDouble, Bath,
+  SquareStack, ChevronDown, ChevronUp,
 } from "lucide-react";
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  Hotel: <Hotel className="w-4 h-4" />,
-  Resort: <TreePalm className="w-4 h-4" />,
-  Restaurant: <UtensilsCrossed className="w-4 h-4" />,
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  Hotel: "bg-blue-100 text-blue-700",
-  Resort: "bg-green-100 text-green-700",
-  Restaurant: "bg-orange-100 text-orange-700",
+const FACILITY_ICONS: Record<string, React.ElementType> = {
+  "Swimming Pool": Waves,
+  "Wifi": Wifi,
+  "Restaurant": Utensils,
+  "Parking": Car,
+  "Meeting Room": ConciergeBell,
+  "Elevator": SquareStack,
+  "Fitness Center": Dumbbell,
+  "24-hours Open": Clock,
 };
 
 interface Listing {
@@ -38,6 +41,11 @@ interface Listing {
   avgStars: number;
   reviewCount: number;
   addedByName?: string;
+  price?: number;
+  facilities?: string[];
+  bedrooms?: number;
+  bathrooms?: number;
+  area?: number;
 }
 
 interface Review {
@@ -60,11 +68,10 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
           onClick={() => onChange(s)}
           onMouseEnter={() => setHovered(s)}
           onMouseLeave={() => setHovered(0)}
-          data-testid={`star-${s}`}
         >
           <Star
             className={`w-7 h-7 transition-colors ${
-              s <= (hovered || value) ? "fill-amber-400 text-amber-400" : "text-slate-300"
+              s <= (hovered || value) ? "fill-amber-400 text-amber-400" : "text-gray-200"
             }`}
           />
         </button>
@@ -73,65 +80,61 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
   );
 }
 
-function StarDisplay({ rating }: { rating: number }) {
+function Avatar({ name }: { name: string }) {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+  const colors = [
+    "bg-blue-500", "bg-purple-500", "bg-pink-500",
+    "bg-orange-500", "bg-teal-500", "bg-indigo-500",
+  ];
+  const color = colors[name.charCodeAt(0) % colors.length];
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={`w-4 h-4 ${s <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
-        />
-      ))}
+    <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center shrink-0`}>
+      <span className="text-white text-sm font-bold">{initials}</span>
     </div>
   );
 }
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingListing, setLoadingListing] = useState(true);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [reviewError, setReviewError] = useState("");
+
   const [lightboxIndex, setLightboxIndex] = useState(-1);
 
   useEffect(() => {
-    const fetchListing = async () => {
-      try {
-        const docSnap = await getDoc(doc(db, "listings", id));
-        if (docSnap.exists()) {
-          setListing({ id: docSnap.id, ...docSnap.data() } as Listing);
-        }
-      } finally {
-        setLoadingListing(false);
-      }
-    };
-    fetchListing();
+    getDoc(doc(db, "listings", id))
+      .then((snap) => { if (snap.exists()) setListing({ id: snap.id, ...snap.data() } as Listing); })
+      .finally(() => setLoadingListing(false));
   }, [id]);
 
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const q = query(
-          collection(db, "reviews"),
-          where("listingId", "==", id)
-        );
-        const snap = await getDocs(q);
+        const snap = await getDocs(query(collection(db, "reviews"), where("listingId", "==", id)));
         const data = snap.docs
           .map((d) => ({ id: d.id, ...d.data() } as Review))
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         setReviews(data);
-        if (user) {
-          setAlreadyReviewed(data.some((r) => r.userId === user.uid));
-        }
+        if (user) setAlreadyReviewed(data.some((r) => r.userId === user.uid));
       } finally {
         setLoadingReviews(false);
       }
@@ -154,20 +157,17 @@ export default function ListingDetailPage() {
         comment: comment.trim(),
         createdAt: new Date().toISOString(),
       });
-
       const newCount = (listing?.reviewCount || 0) + 1;
       const newAvg = ((listing?.avgStars || 0) * (listing?.reviewCount || 0) + stars) / newCount;
       await updateDoc(doc(db, "listings", id), {
         avgStars: Math.round(newAvg * 10) / 10,
         reviewCount: newCount,
       });
-
       const newReview: Review = {
         id: Date.now().toString(),
         userId: user!.uid,
         userName: user!.displayName || user!.email || "Anonymous",
-        stars,
-        comment: comment.trim(),
+        stars, comment: comment.trim(),
         createdAt: new Date().toISOString(),
       };
       setReviews((prev) => [newReview, ...prev]);
@@ -182,15 +182,10 @@ export default function ListingDetailPage() {
     }
   };
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-  };
-
   if (loadingListing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -198,57 +193,54 @@ export default function ListingDetailPage() {
   if (!listing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-slate-600 font-medium">Listing not found.</p>
-        <Link href="/" className="text-green-600 hover:underline text-sm">Go back home</Link>
+        <p className="text-gray-600 font-medium">Listing not found.</p>
+        <Link href="/" className="text-green-500 text-sm font-semibold">Go back home</Link>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <TreePalm className="w-5 h-5 text-green-600" />
-            <span className="font-bold text-slate-800 hidden sm:block">Kerala Stay & Dine</span>
-          </div>
-          {user && (
-            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </header>
+  const photos = listing.photos || [];
+  const galleryPhotos = photos.slice(1, 4);
+  const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+  const typeIcon = listing.type === "Restaurant" ? <Utensils className="w-4 h-4" />
+    : listing.type === "Resort" ? <TreePalm className="w-4 h-4" />
+    : <Hotel className="w-4 h-4" />;
 
-      {/* Lightbox */}
-      {lightboxIndex >= 0 && listing.photos && listing.photos.length > 0 && (
+  const details = [
+    { icon: typeIcon, label: listing.type },
+    ...(listing.bedrooms ? [{ icon: <BedDouble className="w-4 h-4" />, label: `${listing.bedrooms} Bedrooms` }] : []),
+    ...(listing.bathrooms ? [{ icon: <Bath className="w-4 h-4" />, label: `${listing.bathrooms} Bathrooms` }] : []),
+    ...(listing.area ? [{ icon: <SquareStack className="w-4 h-4" />, label: `${listing.area} sqft` }] : []),
+  ];
+
+  const facilities = listing.facilities || [];
+
+  return (
+    <div className="min-h-screen bg-white pb-28">
+
+      {/* ── Lightbox ── */}
+      {lightboxIndex >= 0 && photos.length > 0 && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
           onClick={() => setLightboxIndex(-1)}
         >
           <button
-            className="absolute top-4 right-4 text-white/70 hover:text-white p-2"
+            className="absolute top-4 right-4 w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center"
             onClick={() => setLightboxIndex(-1)}
-            data-testid="button-lightbox-close"
           >
-            <ChevronLeft className="w-6 h-6 rotate-[135deg]" />
+            <X className="w-5 h-5 text-white" />
           </button>
-          {listing.photos.length > 1 && (
+          {photos.length > 1 && (
             <>
               <button
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full p-2 transition-colors"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + listing.photos!.length) % listing.photos!.length); }}
-                data-testid="button-lightbox-prev"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full p-2"
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + photos.length) % photos.length); }}
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
               <button
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full p-2 transition-colors"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % listing.photos!.length); }}
-                data-testid="button-lightbox-next"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full p-2"
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % photos.length); }}
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
@@ -256,203 +248,292 @@ export default function ListingDetailPage() {
           )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={listing.photos[lightboxIndex]}
+            src={photos[lightboxIndex]}
             alt={`${listing.name} photo ${lightboxIndex + 1}`}
-            className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            className="max-w-[90vw] max-h-[85vh] object-contain rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
-          <p className="absolute bottom-4 text-white/60 text-sm">
-            {lightboxIndex + 1} / {listing.photos.length}
-          </p>
+          <p className="absolute bottom-4 text-white/60 text-sm">{lightboxIndex + 1} / {photos.length}</p>
         </div>
       )}
 
-      <main className="max-w-3xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
+      {/* ── Hero Image ── */}
+      <div className="relative w-full h-64 bg-gray-200">
+        {photos.length > 0 ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={photos[0]}
+            alt={listing.name}
+            className="w-full h-full object-cover cursor-pointer"
+            onClick={() => setLightboxIndex(0)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center">
+            <Hotel className="w-16 h-16 text-white/60" />
+          </div>
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
 
-          {/* Photo gallery */}
-          {listing.photos && listing.photos.length > 0 ? (
-            <div className="relative">
-              {/* Main photo */}
-              <div
-                className="h-56 sm:h-72 w-full overflow-hidden cursor-pointer bg-slate-100"
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="absolute top-10 left-4 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-800" />
+        </button>
+
+        {/* Bookmark button */}
+        <button
+          onClick={() => toggleBookmark(listing)}
+          className="absolute top-10 right-4 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow"
+        >
+          <Bookmark
+            className="w-5 h-5 text-gray-700"
+            fill={isBookmarked(listing.id) ? "#22c55e" : "none"}
+            stroke={isBookmarked(listing.id) ? "#22c55e" : "currentColor"}
+          />
+        </button>
+      </div>
+
+      {/* ── Name & Address ── */}
+      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+        <h1 className="text-2xl font-extrabold text-gray-900 leading-tight">{listing.name}</h1>
+        <div className="flex items-center gap-1.5 mt-2">
+          <MapPin className="w-4 h-4 text-green-500 shrink-0" />
+          <p className="text-gray-500 text-sm">{listing.address}{listing.address ? ", " : ""}{listing.district}, Kerala</p>
+        </div>
+      </div>
+
+      {/* ── Gallery Photos ── */}
+      {photos.length > 1 && (
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-extrabold text-gray-900">Gallery Photos</h2>
+            {photos.length > 4 && (
+              <button
                 onClick={() => setLightboxIndex(0)}
-                data-testid="photo-gallery-main"
+                className="text-green-500 text-sm font-semibold"
+              >
+                See All
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {galleryPhotos.map((photo, i) => (
+              <button
+                key={i}
+                onClick={() => setLightboxIndex(i + 1)}
+                className="shrink-0 w-24 h-20 rounded-xl overflow-hidden border border-gray-100"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={listing.photos[0]}
-                  alt={`${listing.name} main photo`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                <img src={photo} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
+              </button>
+            ))}
+            {photos.length > 4 && (
+              <button
+                onClick={() => setLightboxIndex(0)}
+                className="shrink-0 w-24 h-20 rounded-xl bg-gray-100 flex flex-col items-center justify-center text-xs text-gray-500 font-semibold"
+              >
+                +{photos.length - 4}
+                <span className="text-[10px]">more</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Details ── */}
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h2 className="text-base font-extrabold text-gray-900 mb-3">Details</h2>
+        <div className="flex gap-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {details.map((d, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5 shrink-0 min-w-[60px]">
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                {d.icon}
+              </div>
+              <span className="text-xs text-gray-500 text-center leading-tight">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Description ── */}
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h2 className="text-base font-extrabold text-gray-900 mb-2">Description</h2>
+        <p className={`text-gray-500 text-sm leading-relaxed ${!descExpanded ? "line-clamp-4" : ""}`}>
+          {listing.description}
+        </p>
+        {listing.description && listing.description.length > 200 && (
+          <button
+            onClick={() => setDescExpanded(!descExpanded)}
+            className="flex items-center gap-1 text-green-500 text-sm font-semibold mt-2"
+          >
+            {descExpanded ? "Show less" : "Read more"}
+            {descExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        )}
+      </div>
+
+      {/* ── Facilities ── */}
+      {facilities.length > 0 && (
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h2 className="text-base font-extrabold text-gray-900 mb-3">Facilities</h2>
+          <div className="grid grid-cols-4 gap-4">
+            {facilities.map((fac) => {
+              const Icon = FACILITY_ICONS[fac] || ConciergeBell;
+              return (
+                <div key={fac} className="flex flex-col items-center gap-1.5">
+                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] text-gray-500 text-center leading-tight">{fac}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Location ── */}
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h2 className="text-base font-extrabold text-gray-900 mb-3">Location</h2>
+        <div className="h-48 rounded-2xl overflow-hidden border border-gray-100">
+          <iframe
+            title={`Map for ${listing.name}`}
+            className="w-full h-full border-0"
+            src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            allowFullScreen
+          />
+        </div>
+      </div>
+
+      {/* ── Reviews ── */}
+      <div className="px-5 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-gray-900">Review</h2>
+            {listing.avgStars > 0 && (
+              <span className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span className="text-xs font-bold text-amber-600">
+                  {listing.avgStars.toFixed(1)} ({listing.reviewCount} reviews)
+                </span>
+              </span>
+            )}
+          </div>
+          {reviews.length > 3 && (
+            <button onClick={() => setShowAllReviews(!showAllReviews)} className="text-green-500 text-sm font-semibold">
+              {showAllReviews ? "Show Less" : "See All"}
+            </button>
+          )}
+        </div>
+
+        {/* Write review form */}
+        {user ? (
+          alreadyReviewed ? (
+            <div className="bg-green-50 border border-green-100 text-green-700 text-sm px-4 py-3 rounded-xl mb-5">
+              You have already reviewed this place. Thank you!
+            </div>
+          ) : (
+            <form onSubmit={handleSubmitReview} className="bg-gray-50 rounded-2xl p-4 mb-5">
+              <p className="text-sm font-bold text-gray-800 mb-3">Write a Review</p>
+              <div className="mb-3">
+                <label className="text-xs text-gray-400 mb-1 block">Your Rating</label>
+                <StarPicker value={stars} onChange={setStars} />
+              </div>
+              <div className="mb-3">
+                <label className="text-xs text-gray-400 mb-1 block">Your Comment</label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  placeholder="Share your experience…"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
                 />
               </div>
-              {/* Thumbnail strip */}
-              {listing.photos.length > 1 && (
-                <div className="flex gap-1.5 p-3 bg-slate-50 border-b border-slate-100 overflow-x-auto scrollbar-hide">
-                  {listing.photos.map((photo, i) => (
-                    <button
-                      key={i}
-                      data-testid={`photo-thumb-${i}`}
-                      onClick={() => setLightboxIndex(i)}
-                      className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${i === 0 ? "border-green-500" : "border-transparent hover:border-green-300"}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                  <div className="flex items-center gap-1 ml-1 text-xs text-slate-400 shrink-0">
-                    <Images className="w-3.5 h-3.5" />
-                    {listing.photos.length} photos
-                  </div>
-                </div>
+              {reviewError && (
+                <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg mb-3">{reviewError}</p>
               )}
-              {listing.photos.length === 1 && (
-                <div className="absolute bottom-3 right-3 flex items-center gap-1 text-xs text-white bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                  <Images className="w-3 h-3" />
-                  Tap to view
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          <div className="p-6">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <h1 className="text-2xl font-extrabold text-slate-800">{listing.name}</h1>
-            <span className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ${TYPE_COLORS[listing.type] || "bg-slate-100 text-slate-600"}`}>
-              {TYPE_ICONS[listing.type]} {listing.type}
-            </span>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-green-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm disabled:opacity-60"
+              >
+                {submitting ? "Submitting…" : "Submit Review"}
+              </button>
+            </form>
+          )
+        ) : (
+          <div className="bg-gray-50 rounded-2xl px-4 py-5 mb-5 text-center">
+            <p className="text-gray-400 text-sm mb-3">Sign in to leave a review</p>
+            <Link href="/login" className="bg-green-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm">
+              Sign In
+            </Link>
           </div>
+        )}
 
-          <div className="flex items-center gap-2 mb-3">
-            {listing.avgStars > 0 ? (
-              <>
-                <StarDisplay rating={listing.avgStars} />
-                <span className="font-bold text-slate-800">{listing.avgStars}</span>
-                <span className="text-slate-400 text-sm">({listing.reviewCount} {listing.reviewCount === 1 ? "review" : "reviews"})</span>
-              </>
-            ) : (
-              <span className="text-slate-400 text-sm">No reviews yet — be the first!</span>
+        {/* Review cards */}
+        {loadingReviews ? (
+          <div className="space-y-4">
+            {[1, 2].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />)}
+          </div>
+        ) : reviews.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-6">No reviews yet. Be the first!</p>
+        ) : (
+          <div className="space-y-4">
+            {visibleReviews.map((review) => (
+              <div key={review.id} className="flex gap-3">
+                <Avatar name={review.userName} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-gray-900 text-sm">{review.userName}</p>
+                    <span className="flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      <Star className="w-3 h-3 fill-white" />
+                      {review.stars}
+                    </span>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-0.5">
+                    {new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  <p className="text-gray-600 text-sm mt-1 leading-relaxed">{review.comment}</p>
+                </div>
+              </div>
+            ))}
+            {reviews.length > 3 && (
+              <button
+                onClick={() => setShowAllReviews(!showAllReviews)}
+                className="w-full flex items-center justify-center gap-1.5 py-3 border border-gray-200 rounded-2xl text-gray-500 text-sm font-semibold"
+              >
+                {showAllReviews ? "Show less" : `More (${reviews.length - 3})`}
+                {showAllReviews ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
             )}
           </div>
+        )}
+      </div>
 
-          <div className="space-y-2 mb-4">
-            <div className="flex items-start gap-2 text-sm text-slate-600">
-              <MapPin className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-              <span>{listing.address}, {listing.district}</span>
-            </div>
-            {listing.phone && (
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Phone className="w-4 h-4 text-green-600 shrink-0" />
-                <a href={`tel:${listing.phone}`} className="hover:text-green-600 transition-colors">{listing.phone}</a>
-              </div>
-            )}
-          </div>
-
-          <p className="text-slate-600 leading-relaxed mb-4">{listing.description}</p>
-
-          {listing.addedByName && (
-            <p className="text-xs text-slate-400">Added by {listing.addedByName}</p>
-          )}
-          </div>
-        </div>
-
-        {/* Map */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
-            <Map className="w-4 h-4 text-green-600" />
-            <h2 className="text-sm font-bold text-slate-700">Location</h2>
-          </div>
-          <div className="h-64 sm:h-80 w-full">
-            <iframe
-              data-testid="map-embed"
-              title={`Map for ${listing.name}`}
-              className="w-full h-full border-0"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <MessageSquare className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-bold text-slate-800">Reviews</h2>
-            {reviews.length > 0 && <span className="text-sm text-slate-400">({reviews.length})</span>}
-          </div>
-
-          {user ? (
-            alreadyReviewed ? (
-              <div className="bg-green-50 border border-green-100 text-green-700 text-sm px-4 py-3 rounded-xl mb-6">
-                You have already reviewed this place. Thank you!
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitReview} className="mb-8 pb-6 border-b border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-3">Write a Review</p>
-                <div className="mb-3">
-                  <label className="text-xs text-slate-500 mb-1 block">Your Rating</label>
-                  <StarPicker value={stars} onChange={setStars} />
-                </div>
-                <div className="mb-3">
-                  <label className="text-xs text-slate-500 mb-1 block">Your Comment</label>
-                  <textarea
-                    data-testid="textarea-comment"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={3}
-                    placeholder="Share your experience..."
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
-                  />
-                </div>
-                {reviewError && (
-                  <p data-testid="text-review-error" className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg mb-3">{reviewError}</p>
-                )}
-                <button
-                  data-testid="button-submit-review"
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors disabled:opacity-60"
-                >
-                  {submitting ? "Submitting..." : "Submit Review"}
-                </button>
-              </form>
-            )
+      {/* ── Fixed Bottom Bar ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between">
+        <div>
+          {listing.price ? (
+            <>
+              <span className="text-2xl font-extrabold text-gray-900">₹{listing.price.toLocaleString()}</span>
+              <span className="text-gray-400 text-sm"> / night</span>
+            </>
           ) : (
-            <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-4 mb-6 text-center">
-              <p className="text-slate-500 text-sm mb-2">Sign in to leave a review</p>
-              <Link href="/login" className="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded-lg transition-colors inline-block">
-                Sign In
-              </Link>
-            </div>
-          )}
-
-          {loadingReviews ? (
-            <div className="space-y-4">
-              {[1, 2].map((i) => <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />)}
-            </div>
-          ) : reviews.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center py-6">No reviews yet. Be the first to share your experience!</p>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} data-testid={`review-${review.id}`} className="border-b border-slate-100 pb-4 last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-slate-800 text-sm">{review.userName}</span>
-                    <span className="text-xs text-slate-400">{new Date(review.createdAt).toLocaleDateString("en-IN")}</span>
-                  </div>
-                  <div className="flex items-center gap-0.5 mb-1.5">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className={`w-3.5 h-3.5 ${s <= review.stars ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />
-                    ))}
-                  </div>
-                  <p className="text-slate-600 text-sm">{review.comment}</p>
-                </div>
-              ))}
-            </div>
+            <span className="text-gray-400 text-sm font-semibold">Contact for price</span>
           )}
         </div>
-      </main>
+        <Link
+          href={user ? `/bookings?listing=${id}` : "/login"}
+          className="bg-green-500 text-white font-bold px-8 py-3.5 rounded-full text-sm"
+        >
+          Book Now!
+        </Link>
+      </div>
     </div>
   );
 }
