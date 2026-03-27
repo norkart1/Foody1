@@ -21,7 +21,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, continueUrl?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -56,8 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+  const resetPassword = async (email: string, continueUrl?: string) => {
+    const actionCodeSettings = continueUrl
+      ? { url: continueUrl, handleCodeInApp: false }
+      : undefined;
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
   };
 
   return (

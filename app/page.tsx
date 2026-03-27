@@ -31,18 +31,27 @@ interface Listing {
   description: string;
   avgStars?: number;
   reviewCount?: number;
+  photos?: string[];
 }
 
 function ListingCard({ listing }: { listing: Listing }) {
   const meta = CAT_META[listing.type] || CAT_META.Hotel;
   const Icon = meta.icon;
+  const firstPhoto = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
+
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="relative rounded-3xl overflow-hidden shrink-0 w-[220px] h-[180px] shadow-md"
+      className="relative rounded-3xl overflow-hidden shrink-0 shadow-md block"
+      style={{ width: 220, height: 180, minWidth: 220 }}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${meta.gradient}`} />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      {firstPhoto ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={firstPhoto} alt={listing.name} className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <div className={`absolute inset-0 bg-gradient-to-br ${meta.gradient}`} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
       {listing.avgStars && listing.avgStars > 0 && (
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
@@ -51,9 +60,11 @@ function ListingCard({ listing }: { listing: Listing }) {
         </div>
       )}
 
-      <div className="absolute top-3 left-3 w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-        <Icon className="w-5 h-5 text-white" />
-      </div>
+      {!firstPhoto && (
+        <div className="absolute top-3 left-3 w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+          <Icon className="w-5 h-5 text-white" />
+        </div>
+      )}
 
       <div className="absolute bottom-0 left-0 right-0 p-3">
         <p className="text-white font-bold text-sm leading-tight truncate">{listing.name}</p>
@@ -76,13 +87,19 @@ function ListingCard({ listing }: { listing: Listing }) {
 function SmallListingCard({ listing }: { listing: Listing }) {
   const meta = CAT_META[listing.type] || CAT_META.Hotel;
   const Icon = meta.icon;
+  const firstPhoto = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
   return (
     <Link
       href={`/listings/${listing.id}`}
       className="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm"
     >
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0`}>
-        <Icon className="w-5 h-5 text-white" />
+      <div className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 ${!firstPhoto ? `bg-gradient-to-br ${meta.gradient} flex items-center justify-center` : ""}`}>
+        {firstPhoto ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={firstPhoto} alt={listing.name} className="w-full h-full object-cover" />
+        ) : (
+          <Icon className="w-5 h-5 text-white" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-slate-800 text-sm truncate">{listing.name}</p>

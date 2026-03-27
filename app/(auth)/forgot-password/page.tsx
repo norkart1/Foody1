@@ -18,7 +18,8 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
     try {
-      await resetPassword(email.trim());
+      const continueUrl = `${window.location.origin}/login`;
+      await resetPassword(email.trim(), continueUrl);
       setSent(true);
     } catch (err: unknown) {
       const e = err as { code?: string; message?: string };

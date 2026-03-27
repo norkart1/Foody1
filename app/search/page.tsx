@@ -27,6 +27,7 @@ interface Listing {
   description: string;
   avgStars?: number;
   reviewCount?: number;
+  photos?: string[];
 }
 
 export default function SearchPage() {
@@ -108,14 +109,20 @@ export default function SearchPage() {
             {filtered.map((l) => {
               const meta = CAT_META[l.type] || CAT_META.Hotel;
               const Icon = meta.icon;
+              const firstPhoto = l.photos && l.photos.length > 0 ? l.photos[0] : null;
               return (
                 <Link
                   key={l.id}
                   href={`/listings/${l.id}`}
                   className="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm"
                 >
-                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0`}>
-                    <Icon className="w-6 h-6 text-white" />
+                  <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 ${!firstPhoto ? `bg-gradient-to-br ${meta.gradient} flex items-center justify-center` : ""}`}>
+                    {firstPhoto ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={firstPhoto} alt={l.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Icon className="w-6 h-6 text-white" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-slate-800 text-sm truncate">{l.name}</p>
