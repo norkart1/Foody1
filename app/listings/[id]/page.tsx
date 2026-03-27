@@ -397,17 +397,33 @@ export default function ListingDetailPage() {
 
       {/* ── Location ── */}
       <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-base font-extrabold text-gray-900 mb-3">Location</h2>
-        <div className="h-48 rounded-2xl overflow-hidden border border-gray-100">
-          <iframe
-            title={`Map for ${listing.name}`}
-            className="w-full h-full border-0"
-            src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            allowFullScreen
-          />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-extrabold text-gray-900">Location</h2>
+          <Link
+            href={`/listings/${listing.id}/map`}
+            className="text-green-500 text-sm font-semibold"
+          >
+            View Map
+          </Link>
         </div>
+        <Link href={`/listings/${listing.id}/map`} className="block">
+          <div className="relative h-44 rounded-2xl overflow-hidden border border-gray-100">
+            <iframe
+              title={`Map preview for ${listing.name}`}
+              className="w-full h-full border-0 pointer-events-none"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            {/* Transparent overlay — catches tap and navigates to full map */}
+            <div className="absolute inset-0 bg-transparent cursor-pointer" />
+            {/* Tap hint badge */}
+            <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-green-500" />
+              Tap to expand
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* ── Reviews ── */}
