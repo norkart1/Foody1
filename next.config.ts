@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     "*.replit.dev",
     "*.replit.app",
   ],
+  transpilePackages: ["firebase"],
+  experimental: {
+    optimizePackageImports: ["firebase"],
+  },
 };
 
 export default nextConfig;
