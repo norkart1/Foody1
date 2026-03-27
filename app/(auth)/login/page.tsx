@@ -126,14 +126,13 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
 
-          <button
-            type="button"
+          <Link
+            href="/forgot-password"
             data-testid="button-forgot-password"
-            className="text-green-500 text-sm font-semibold text-center mb-6 hover:underline w-full"
-            onClick={() => setError("Password reset is not available yet. Please contact support.")}
+            className="text-green-500 text-sm font-semibold text-center mb-6 hover:underline w-full block"
           >
             Forgot the password?
-          </button>
+          </Link>
         </form>
 
         <div className="flex items-center gap-3 mb-6">
