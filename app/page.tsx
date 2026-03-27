@@ -7,7 +7,7 @@ import { collection, getDocs, query } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import {
   MapPin, Star, Hotel, UtensilsCrossed, TreePalm,
-  Bell, Bookmark, Search, ChevronRight, Plus, SlidersHorizontal,
+  Bell, Bookmark, Search, ChevronRight, SlidersHorizontal,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -32,6 +32,7 @@ interface Listing {
   avgStars?: number;
   reviewCount?: number;
   photos?: string[];
+  price?: number;
 }
 
 function ListingCard({ listing }: { listing: Listing }) {
@@ -72,6 +73,11 @@ function ListingCard({ listing }: { listing: Listing }) {
           <MapPin className="w-3 h-3 text-white/70 shrink-0" />
           <span className="text-white/80 text-xs truncate">{listing.district}</span>
         </div>
+        {listing.price ? (
+          <p className="text-white text-xs mt-1 font-semibold">
+            ₹{listing.price.toLocaleString()} <span className="font-normal opacity-80">/ per night</span>
+          </p>
+        ) : null}
       </div>
 
       <button
@@ -171,11 +177,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {user && (
-              <Link href="/add" className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center">
-                <Plus className="w-5 h-5 text-green-600" />
-              </Link>
-            )}
             <button className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center relative">
               <Bell className="w-5 h-5 text-slate-600" />
             </button>
@@ -211,15 +212,15 @@ export default function HomePage() {
       </header>
 
       {/* ── Category Pills ── */}
-      <div className="px-4 mt-4 flex gap-2 overflow-x-auto scrollbar-hide">
+      <div className="px-4 mt-4 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
         {CATEGORIES.map(({ type, label }) => (
           <button
             key={type}
             onClick={() => setActiveType(type)}
-            className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap shrink-0 border transition-colors ${
+            className={`px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap shrink-0 border transition-all ${
               activeType === type
                 ? "bg-green-500 text-white border-green-500"
-                : "bg-white text-slate-600 border-slate-200"
+                : "bg-white text-green-500 border-green-400"
             }`}
           >
             {label}
@@ -252,12 +253,9 @@ export default function HomePage() {
               <h2 className="font-extrabold text-slate-800 text-base">
                 {activeType === "All" ? "Featured Places" : `Top ${activeType}s`}
               </h2>
-              <button
-                onClick={() => {}}
-                className="text-green-500 text-sm font-semibold"
-              >
+              <Link href="/search" className="text-green-500 text-sm font-semibold">
                 See All
-              </button>
+              </Link>
             </div>
             {featured.length === 0 ? (
               <div className="mx-4 bg-white rounded-3xl p-8 text-center shadow-sm">
@@ -284,7 +282,7 @@ export default function HomePage() {
             <div className="mt-6 px-4">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-extrabold text-slate-800 text-base">Top Rated</h2>
-                <span className="text-green-500 text-sm font-semibold">See All</span>
+                <Link href="/search" className="text-green-500 text-sm font-semibold">See All</Link>
               </div>
               <div className="space-y-3">
                 {topRated.slice(0, 5).map((l) => (
