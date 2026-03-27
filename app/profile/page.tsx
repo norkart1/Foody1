@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { User, LogIn, LogOut, Plus, Mail, ChevronRight } from "lucide-react";
+import { User, LogIn, LogOut, Plus, Mail, ChevronRight, Bookmark } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth();
@@ -70,6 +70,16 @@ export default function ProfilePage() {
 
       <div className="px-4 space-y-3">
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <Link
+            href="/bookmarks"
+            className="flex items-center gap-3 px-4 py-4 border-b border-slate-50 active:bg-slate-50"
+          >
+            <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
+              <Bookmark className="w-5 h-5 text-green-500" />
+            </div>
+            <span className="flex-1 font-semibold text-slate-700 text-sm">My Bookmarks</span>
+            <ChevronRight className="w-4 h-4 text-slate-300" />
+          </Link>
           <Link
             href="/add"
             className="flex items-center gap-3 px-4 py-4 border-b border-slate-50 active:bg-slate-50"

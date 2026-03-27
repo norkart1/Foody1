@@ -5,6 +5,7 @@ import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import {
   MapPin, Star, Hotel, UtensilsCrossed, TreePalm,
   Bell, Bookmark, Search, ChevronRight, SlidersHorizontal,
@@ -35,7 +36,15 @@ interface Listing {
   price?: number;
 }
 
-function ListingCard({ listing }: { listing: Listing }) {
+function ListingCard({
+  listing,
+  bookmarked,
+  onToggleBookmark,
+}: {
+  listing: Listing;
+  bookmarked: boolean;
+  onToggleBookmark: (e: React.MouseEvent) => void;
+}) {
   const meta = CAT_META[listing.type] || CAT_META.Hotel;
   const Icon = meta.icon;
   const firstPhoto = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
@@ -82,9 +91,12 @@ function ListingCard({ listing }: { listing: Listing }) {
 
       <button
         className="absolute bottom-3 right-3 w-7 h-7 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center"
-        onClick={(e) => e.preventDefault()}
+        onClick={onToggleBookmark}
       >
-        <Bookmark className="w-3.5 h-3.5 text-white" />
+        <Bookmark
+          className="w-3.5 h-3.5 text-white"
+          fill={bookmarked ? "white" : "none"}
+        />
       </button>
     </Link>
   );
@@ -127,6 +139,7 @@ function SmallListingCard({ listing }: { listing: Listing }) {
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { isBookmarked, toggleBookmark } = useBookmarks();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState("All");
@@ -180,7 +193,7 @@ export default function HomePage() {
             <button className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center relative">
               <Bell className="w-5 h-5 text-slate-600" />
             </button>
-            <Link href="/profile" className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center">
+            <Link href="/bookmarks" className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center">
               <Bookmark className="w-5 h-5 text-slate-600" />
             </Link>
           </div>
@@ -270,7 +283,14 @@ export default function HomePage() {
               <div className="flex gap-3 overflow-x-auto scrollbar-hide pl-4 pr-4 pb-1 snap-x snap-mandatory">
                 {featured.slice(0, 8).map((l) => (
                   <div key={l.id} className="snap-start">
-                    <ListingCard listing={l} />
+                    <ListingCard
+                      listing={l}
+                      bookmarked={isBookmarked(l.id)}
+                      onToggleBookmark={(e) => {
+                        e.preventDefault();
+                        toggleBookmark(l);
+                      }}
+                    />
                   </div>
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
+import { useBookmarks } from "@/hooks/useBookmarks";
 import { Search, SlidersHorizontal, Star, Hotel, UtensilsCrossed, TreePalm, LayoutList, LayoutGrid, Bookmark } from "lucide-react";
 
 const CATEGORIES = [
@@ -37,7 +38,7 @@ export default function SearchPage() {
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("All");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   useEffect(() => {
     getDocs(query(collection(db, "listings")))
@@ -56,15 +57,6 @@ export default function SearchPage() {
       (l.description?.toLowerCase() || "").includes(q);
     return matchType && matchSearch;
   });
-
-  function toggleSave(id: string, e: React.MouseEvent) {
-    e.preventDefault();
-    setSaved((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
 
   return (
     <div className="min-h-screen bg-white pb-24">
@@ -202,16 +194,16 @@ export default function SearchPage() {
                       )}
                     </div>
                     <button
-                      onClick={(e) => toggleSave(l.id, e)}
+                      onClick={(e) => { e.preventDefault(); toggleBookmark(l); }}
                       className={`p-1.5 rounded-lg border ${
-                        saved.has(l.id)
+                        isBookmarked(l.id)
                           ? "border-green-500 text-green-500"
                           : "border-gray-200 text-gray-400"
                       }`}
                     >
                       <Bookmark
                         className="w-4 h-4"
-                        fill={saved.has(l.id) ? "currentColor" : "none"}
+                        fill={isBookmarked(l.id) ? "currentColor" : "none"}
                       />
                     </button>
                   </div>
