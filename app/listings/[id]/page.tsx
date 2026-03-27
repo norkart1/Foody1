@@ -11,7 +11,7 @@ import {
   query, where, updateDoc,
 } from "firebase/firestore";
 import {
-  ArrowLeft, MapPin, Star, Bookmark,
+  ArrowLeft, MapPin, Star, Bookmark, Phone,
   Hotel, UtensilsCrossed, TreePalm, Wifi, Car,
   Waves, Dumbbell, ConciergeBell, Clock, Utensils,
   ChevronLeft, ChevronRight, X, BedDouble, Bath,
@@ -303,6 +303,20 @@ export default function ListingDetailPage() {
           <MapPin className="w-4 h-4 text-green-500 shrink-0" />
           <p className="text-gray-500 text-sm">{listing.address}{listing.address ? ", " : ""}{listing.district}, Kerala</p>
         </div>
+        {listing.phone && (
+          <a
+            href={`tel:${listing.phone}`}
+            className="inline-flex items-center gap-2 mt-3 bg-green-50 border border-green-100 px-4 py-2.5 rounded-xl"
+          >
+            <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shrink-0">
+              <Phone className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-400 leading-none mb-0.5">Phone number</p>
+              <p className="text-sm font-bold text-gray-900">{listing.phone}</p>
+            </div>
+          </a>
+        )}
       </div>
 
       {/* ── Gallery Photos ── */}
@@ -532,8 +546,8 @@ export default function ListingDetailPage() {
       </div>
 
       {/* ── Fixed Bottom Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between">
-        <div>
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
           {listing.price ? (
             <>
               <span className="text-2xl font-extrabold text-gray-900">₹{listing.price.toLocaleString()}</span>
@@ -543,12 +557,23 @@ export default function ListingDetailPage() {
             <span className="text-gray-400 text-sm font-semibold">Contact for price</span>
           )}
         </div>
-        <Link
-          href={user ? `/bookings?listing=${id}` : "/login"}
-          className="bg-green-500 text-white font-bold px-8 py-3.5 rounded-full text-sm"
-        >
-          Book Now!
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          {listing.phone && (
+            <a
+              href={`tel:${listing.phone}`}
+              className="w-12 h-12 bg-green-50 border border-green-200 rounded-full flex items-center justify-center"
+              title={listing.phone}
+            >
+              <Phone className="w-5 h-5 text-green-600" />
+            </a>
+          )}
+          <Link
+            href={user ? `/bookings?listing=${id}` : "/login"}
+            className="bg-green-500 text-white font-bold px-8 py-3.5 rounded-full text-sm"
+          >
+            Book Now!
+          </Link>
+        </div>
       </div>
     </div>
   );
