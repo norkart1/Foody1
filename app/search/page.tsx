@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { Search, SlidersHorizontal, Star, Hotel, UtensilsCrossed, TreePalm, LayoutList, LayoutGrid, Bookmark } from "lucide-react";
+import {
+  Search, SlidersHorizontal, Star, Hotel, UtensilsCrossed,
+  TreePalm, LayoutList, LayoutGrid, Bookmark, X, MapPin,
+} from "lucide-react";
 
 const CATEGORIES = [
   { type: "All", label: "All" },
@@ -37,7 +40,12 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState("All");
+  const [activeDistrict, setActiveDistrict] = useState("All");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [filterOpen, setFilterOpen] = useState(false);
+  // draft state inside the sheet
+  const [draftType, setDraftType] = useState("All");
+  const [draftDistrict, setDraftDistrict] = useState("All");
   const { isBookmarked, toggleBookmark } = useBookmarks();
 
   useEffect(() => {
@@ -47,21 +55,54 @@ export default function SearchPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const districts = useMemo(() => {
+    const set = new Set(listings.map((l) => l.district).filter(Boolean));
+    return ["All", ...Array.from(set).sort()];
+  }, [listings]);
+
   const filtered = listings.filter((l) => {
     const matchType = activeType === "All" || l.type === activeType;
+    const matchDistrict = activeDistrict === "All" || l.district === activeDistrict;
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
       l.name.toLowerCase().includes(q) ||
       l.district.toLowerCase().includes(q) ||
       (l.description?.toLowerCase() || "").includes(q);
-    return matchType && matchSearch;
+    return matchType && matchDistrict && matchSearch;
   });
+
+  const hasActiveFilters = activeType !== "All" || activeDistrict !== "All";
+
+  function openFilter() {
+    setDraftType(activeType);
+    setDraftDistrict(activeDistrict);
+    setFilterOpen(true);
+  }
+
+  function applyFilter() {
+    setActiveType(draftType);
+    setActiveDistrict(draftDistrict);
+    setFilterOpen(false);
+  }
+
+  function resetFilter() {
+    setDraftType("All");
+    setDraftDistrict("All");
+  }
+
+  function clearDistrict() {
+    setActiveDistrict("All");
+  }
+
+  function clearType() {
+    setActiveType("All");
+  }
 
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Search bar */}
-      <div className="px-4 pt-12 pb-3 bg-white sticky top-0 z-10">
+      <div className="px-4 pt-12 pb-3 bg-white sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3 bg-gray-100 rounded-2xl px-4 py-3">
           <Search className="w-4 h-4 text-gray-400 shrink-0" />
           <input
@@ -71,8 +112,15 @@ export default function SearchPage() {
             placeholder="Search hotels, resorts, restaurants…"
             className="flex-1 bg-transparent text-gray-800 text-sm placeholder-gray-400 focus:outline-none"
           />
-          <button className="shrink-0">
-            <SlidersHorizontal className="w-4 h-4 text-gray-500" />
+          <button
+            onClick={openFilter}
+            className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+              hasActiveFilters ? "bg-green-500" : "bg-transparent"
+            }`}
+          >
+            <SlidersHorizontal
+              className={`w-4 h-4 ${hasActiveFilters ? "text-white" : "text-gray-500"}`}
+            />
           </button>
         </div>
 
@@ -92,6 +140,29 @@ export default function SearchPage() {
             </button>
           ))}
         </div>
+
+        {/* Active filter badges */}
+        {hasActiveFilters && (
+          <div className="flex gap-2 mt-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {activeDistrict !== "All" && (
+              <span className="flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap shrink-0">
+                <MapPin className="w-3 h-3" />
+                {activeDistrict}
+                <button onClick={clearDistrict} className="ml-0.5">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {activeType !== "All" && (
+              <span className="flex items-center gap-1 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap shrink-0">
+                {activeType}
+                <button onClick={clearType} className="ml-0.5">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-3">
@@ -134,7 +205,7 @@ export default function SearchPage() {
           <div className="text-center py-20">
             <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500 font-semibold">No results found</p>
-            <p className="text-gray-400 text-sm mt-1">Try different keywords</p>
+            <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
           </div>
         ) : viewMode === "list" ? (
           <div className="space-y-1">
@@ -148,7 +219,6 @@ export default function SearchPage() {
                   href={`/listings/${l.id}`}
                   className="flex items-center gap-3 bg-white py-3 border-b border-gray-100"
                 >
-                  {/* Thumbnail */}
                   <div
                     className={`w-20 h-20 rounded-2xl overflow-hidden shrink-0 ${
                       !firstPhoto ? `bg-gradient-to-br ${meta.gradient} flex items-center justify-center` : ""
@@ -161,8 +231,6 @@ export default function SearchPage() {
                       <Icon className="w-8 h-8 text-white" />
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-900 text-base leading-tight truncate">{l.name}</p>
                     <p className="text-gray-400 text-xs mt-0.5 truncate">{l.district}</p>
@@ -178,8 +246,6 @@ export default function SearchPage() {
                       )}
                     </div>
                   </div>
-
-                  {/* Price + Bookmark */}
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <div className="text-right">
                       {l.price ? (
@@ -212,7 +278,6 @@ export default function SearchPage() {
             })}
           </div>
         ) : (
-          /* Grid view */
           <div className="grid grid-cols-2 gap-3">
             {filtered.map((l) => {
               const meta = CAT_META[l.type] || CAT_META.Hotel;
@@ -257,6 +322,96 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      {/* ── Filter Bottom Sheet ── */}
+      {filterOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => setFilterOpen(false)}
+          />
+          {/* Sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
+              <h2 className="text-base font-extrabold text-gray-900">Filter</h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={resetFilter}
+                  className="text-sm font-semibold text-gray-400"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-6">
+              {/* Type */}
+              <div>
+                <p className="text-sm font-extrabold text-gray-800 mb-3">Type</p>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map(({ type, label }) => (
+                    <button
+                      key={type}
+                      onClick={() => setDraftType(type)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                        draftType === type
+                          ? "bg-green-500 text-white border-green-500"
+                          : "bg-white text-green-500 border-green-400"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* District */}
+              <div>
+                <p className="text-sm font-extrabold text-gray-800 mb-3">District</p>
+                <div className="flex flex-wrap gap-2">
+                  {districts.map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDraftDistrict(d)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                        draftDistrict === d
+                          ? "bg-green-500 text-white border-green-500"
+                          : "bg-white text-gray-600 border-gray-200"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Apply button */}
+            <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+              <button
+                onClick={applyFilter}
+                className="w-full bg-green-500 text-white font-bold py-3.5 rounded-2xl text-sm"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
