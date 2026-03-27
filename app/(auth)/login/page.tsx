@@ -18,7 +18,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!email || !password) { setError("Please enter your email and password."); return; }
     setError(""); setLoading(true);
     try {
@@ -64,73 +65,76 @@ export default function LoginPage() {
           Login to your<br />Account
         </h1>
 
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3.5">
-            <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+        <form onSubmit={handleLogin} noValidate>
+          <div className="space-y-3 mb-4">
+            <div className="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3.5">
+              <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                data-testid="input-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                autoComplete="email"
+                className="flex-1 bg-transparent text-slate-800 text-sm placeholder-slate-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3.5">
+              <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                data-testid="input-password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                autoComplete="current-password"
+                className="flex-1 bg-transparent text-slate-800 text-sm placeholder-slate-400 focus:outline-none"
+              />
+              <button type="button" data-testid="button-toggle-password" onClick={() => setShowPassword(v => !v)} className="text-slate-400 hover:text-slate-600 p-1">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2.5 mb-5 cursor-pointer select-none">
             <input
-              data-testid="input-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              autoComplete="email"
-              className="flex-1 bg-transparent text-slate-800 text-sm placeholder-slate-400 focus:outline-none"
+              type="checkbox"
+              data-testid="checkbox-remember"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="sr-only"
             />
-          </div>
+            <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${rememberMe ? "border-green-500 bg-white" : "border-slate-300 bg-white"}`}>
+              {rememberMe && <span className="w-2.5 h-2.5 rounded-sm bg-green-500" />}
+            </span>
+            <span className="text-sm text-slate-600">Remember me</span>
+          </label>
 
-          <div className="flex items-center gap-3 bg-slate-100 rounded-2xl px-4 py-3.5">
-            <Lock className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              data-testid="input-password"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              autoComplete="current-password"
-              className="flex-1 bg-transparent text-slate-800 text-sm placeholder-slate-400 focus:outline-none"
-            />
-            <button type="button" data-testid="button-toggle-password" onClick={() => setShowPassword(v => !v)} className="text-slate-400 hover:text-slate-600">
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+          {error && (
+            <div data-testid="text-error" className="mb-4 text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">
+              {error}
+            </div>
+          )}
 
-        <button
-          type="button"
-          onClick={() => setRememberMe(v => !v)}
-          data-testid="checkbox-remember"
-          className="flex items-center gap-2.5 mb-5"
-        >
-          <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors shrink-0 ${rememberMe ? "border-green-500 bg-white" : "border-slate-300 bg-white"}`}>
-            {rememberMe && <span className="w-2.5 h-2.5 rounded-sm bg-green-500" />}
-          </span>
-          <span className="text-sm text-slate-600">Remember me</span>
-        </button>
+          <button
+            type="submit"
+            data-testid="button-login"
+            disabled={loading}
+            className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold py-4 rounded-full transition-colors disabled:opacity-60 text-sm mb-3"
+          >
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
 
-        {error && (
-          <div data-testid="text-error" className="mb-4 text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="button"
-          data-testid="button-login"
-          onClick={handleLogin}
-          disabled={loading}
-          className="w-full bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-semibold py-4 rounded-full transition-colors disabled:opacity-60 text-sm mb-3"
-        >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-
-        <button
-          type="button"
-          data-testid="button-forgot-password"
-          className="text-green-500 text-sm font-semibold text-center mb-6 hover:underline"
-          onClick={() => setError("Password reset is not available yet. Please contact support.")}
-        >
-          Forgot the password?
-        </button>
+          <button
+            type="button"
+            data-testid="button-forgot-password"
+            className="text-green-500 text-sm font-semibold text-center mb-6 hover:underline w-full"
+            onClick={() => setError("Password reset is not available yet. Please contact support.")}
+          >
+            Forgot the password?
+          </button>
+        </form>
 
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-slate-200" />
