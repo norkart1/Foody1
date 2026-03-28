@@ -256,7 +256,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-50 pb-24">
 
       {/* ── Header ── */}
-      <header className="bg-white px-4 pt-12 pb-4">
+      <header className="bg-white px-4 pt-4 pb-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center shrink-0">
