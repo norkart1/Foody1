@@ -95,7 +95,24 @@ export default function AddListingPage() {
     description: "",
     address: "",
     phone: "",
+    // Room details (Hotel / Resort only)
+    pricePerNight: "",
+    totalRooms: "",
+    roomTypes: [] as string[],
   });
+
+  const ROOM_TYPES = ["Single", "Double", "Twin", "Triple", "Suite", "Deluxe", "Family Room", "Executive"];
+
+  const toggleRoomType = (rt: string) => {
+    setForm((prev) => ({
+      ...prev,
+      roomTypes: prev.roomTypes.includes(rt)
+        ? prev.roomTypes.filter((r) => r !== rt)
+        : [...prev.roomTypes, rt],
+    }));
+  };
+
+  const isAccommodation = form.type === "Hotel" || form.type === "Resort";
 
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
@@ -161,7 +178,7 @@ export default function AddListingPage() {
       }
 
       setUploadProgress("Saving listing…");
-      const docRef = await addDoc(collection(db, "listings"), {
+      const docData: Record<string, unknown> = {
         name: form.name,
         type: form.type,
         district: form.district,
@@ -174,7 +191,14 @@ export default function AddListingPage() {
         avgStars: 0,
         reviewCount: 0,
         createdAt: new Date().toISOString(),
-      });
+      };
+      // Include room details only for hotels / resorts
+      if (isAccommodation) {
+        if (form.pricePerNight) docData.price = Number(form.pricePerNight);
+        if (form.totalRooms) docData.totalRooms = Number(form.totalRooms);
+        if (form.roomTypes.length) docData.roomTypes = form.roomTypes;
+      }
+      const docRef = await addDoc(collection(db, "listings"), docData);
       router.push(`/listings/${docRef.id}`);
     } catch (err) {
       console.error(err);
@@ -288,6 +312,71 @@ export default function AddListingPage() {
                 />
               </div>
             </div>
+
+            {/* ── Room Details (Hotel / Resort only) ── */}
+            {isAccommodation && (
+              <div className="border border-green-100 bg-green-50/50 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🛏️</span>
+                  <p className="text-sm font-semibold text-slate-700">Room Details</p>
+                  <span className="text-xs text-slate-400 font-normal">(optional)</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Price per Night (₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                      <input
+                        name="pricePerNight"
+                        type="number"
+                        min="0"
+                        value={form.pricePerNight}
+                        onChange={handleChange}
+                        placeholder="e.g. 5000"
+                        className="w-full pl-7 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Total Rooms</label>
+                    <input
+                      name="totalRooms"
+                      type="number"
+                      min="1"
+                      value={form.totalRooms}
+                      onChange={handleChange}
+                      placeholder="e.g. 24"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-2">Room Types Available</label>
+                  <div className="flex flex-wrap gap-2">
+                    {ROOM_TYPES.map((rt) => {
+                      const selected = form.roomTypes.includes(rt);
+                      return (
+                        <button
+                          key={rt}
+                          type="button"
+                          onClick={() => toggleRoomType(rt)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                            selected
+                              ? "bg-green-500 text-white border-green-500"
+                              : "bg-white text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {rt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Photo Upload */}
             <div>

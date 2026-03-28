@@ -46,6 +46,8 @@ interface Listing {
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
+  totalRooms?: number;
+  roomTypes?: string[];
 }
 
 interface Review {
