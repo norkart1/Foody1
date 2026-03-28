@@ -6,10 +6,11 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import { useBookmarks } from "@/hooks/useBookmarks";
+import { useListingNotifications } from "@/hooks/useListingNotifications";
 import {
   MapPin, Star, Hotel, UtensilsCrossed, TreePalm,
   Bell, Bookmark, Search, ChevronRight, SlidersHorizontal,
-  Navigation, TrendingUp, Award, Locate,
+  Navigation, TrendingUp, Award, Locate, X, CheckCheck,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -188,13 +189,34 @@ function HorizontalScroll({ children }: { children: React.ReactNode }) {
   );
 }
 
+const TYPE_EMOJI: Record<string, string> = {
+  Hotel: "🏨",
+  Resort: "🌴",
+  Restaurant: "🍽️",
+};
+
+function timeAgo(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 export default function HomePage() {
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { notifications, unreadCount, markAllRead, clearAll } = useListingNotifications();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeType, setActiveType] = useState("All");
   const [search, setSearch] = useState("");
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const openNotif = () => {
+    setNotifOpen(true);
+    markAllRead();
+  };
 
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
@@ -268,8 +290,16 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center">
+            <button
+              onClick={openNotif}
+              className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center relative"
+            >
               <Bell className="w-5 h-5 text-slate-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
             <Link href="/bookmarks" className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center">
               <Bookmark className="w-5 h-5 text-slate-600" />
@@ -482,6 +512,75 @@ export default function HomePage() {
             </div>
           )}
         </>
+      )}
+
+      {/* ── Notification Drawer ── */}
+      {notifOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setNotifOpen(false)} />
+          <div className="relative bg-white rounded-t-3xl max-h-[75vh] flex flex-col">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-slate-200 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-slate-700" />
+                <h2 className="text-base font-extrabold text-slate-800">Notifications</h2>
+                {notifications.length > 0 && (
+                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {notifications.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {notifications.length > 0 && (
+                  <button onClick={clearAll} className="text-xs text-slate-400 font-semibold">
+                    Clear all
+                  </button>
+                )}
+                <button
+                  onClick={() => setNotifOpen(false)}
+                  className="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center"
+                >
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2 pb-10">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+                    <CheckCheck className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="font-semibold text-slate-500 text-sm">You&apos;re all caught up!</p>
+                  <p className="text-slate-400 text-xs mt-1">New hotels, resorts & restaurants will appear here.</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <Link
+                    key={n.id}
+                    href={`/listings/${n.listingId}`}
+                    onClick={() => setNotifOpen(false)}
+                    className="flex items-start gap-3 bg-green-50 rounded-2xl p-3"
+                  >
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm">
+                      {TYPE_EMOJI[n.type] || "🏠"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800">New {n.type} Added!</p>
+                      <p className="text-sm text-slate-600 truncate font-semibold">{n.name}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-green-500 shrink-0" />
+                        <span className="text-xs text-slate-400 truncate">{n.district}</span>
+                        <span className="text-xs text-slate-300 ml-auto shrink-0">{timeAgo(n.timestamp)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
