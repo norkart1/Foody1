@@ -89,14 +89,28 @@ export default function SearchPage() {
   function resetFilter() {
     setDraftType("All");
     setDraftDistrict("All");
+    setActiveType("All");
+    setActiveDistrict("All");
+  }
+
+  function selectDraftType(t: string) {
+    setDraftType(t);
+    setActiveType(t);
+  }
+
+  function selectDraftDistrict(d: string) {
+    setDraftDistrict(d);
+    setActiveDistrict(d);
   }
 
   function clearDistrict() {
     setActiveDistrict("All");
+    setDraftDistrict("All");
   }
 
   function clearType() {
     setActiveType("All");
+    setDraftType("All");
   }
 
   return (
@@ -366,7 +380,7 @@ export default function SearchPage() {
                   {CATEGORIES.map(({ type, label }) => (
                     <button
                       key={type}
-                      onClick={() => setDraftType(type)}
+                      onClick={() => selectDraftType(type)}
                       className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
                         draftType === type
                           ? "bg-green-500 text-white border-green-500"
@@ -386,7 +400,7 @@ export default function SearchPage() {
                   {districts.map((d) => (
                     <button
                       key={d}
-                      onClick={() => setDraftDistrict(d)}
+                      onClick={() => selectDraftDistrict(d)}
                       className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
                         draftDistrict === d
                           ? "bg-green-500 text-white border-green-500"
@@ -406,7 +420,7 @@ export default function SearchPage() {
                 onClick={applyFilter}
                 className="w-full bg-green-500 text-white font-bold py-3.5 rounded-2xl text-sm"
               >
-                Apply Filters
+                Show {filtered.length} result{filtered.length !== 1 ? "s" : ""}
               </button>
             </div>
           </div>
