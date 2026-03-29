@@ -74,6 +74,8 @@ interface Listing {
   reviewCount?: number;
   photos?: string[];
   price?: number;
+  lat?: number;
+  lng?: number;
 }
 
 function ListingCard({
@@ -269,7 +271,12 @@ export default function HomePage() {
 
   const nearby = userCoords
     ? listings
-        .map((l) => ({ ...l, distKm: districtDistanceKm(l.district, userCoords.lat, userCoords.lon) }))
+        .map((l) => ({
+          ...l,
+          distKm: l.lat && l.lng
+            ? haversineKm(userCoords.lat, userCoords.lon, l.lat, l.lng)
+            : districtDistanceKm(l.district, userCoords.lat, userCoords.lon),
+        }))
         .sort((a, b) => a.distKm - b.distKm)
         .slice(0, 10)
     : [];

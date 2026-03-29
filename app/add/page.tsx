@@ -3,11 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { TreePalm, ArrowLeft, ImagePlus, X, Loader2 } from "lucide-react";
+import { TreePalm, ArrowLeft, ImagePlus, X, Loader2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[280px] bg-slate-100 rounded-2xl flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+});
 
 const DISTRICTS = [
   "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha",
@@ -114,6 +124,10 @@ export default function AddListingPage() {
 
   const isAccommodation = form.type === "Hotel" || form.type === "Resort";
 
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
+
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
 
@@ -197,6 +211,11 @@ export default function AddListingPage() {
         if (form.pricePerNight) docData.price = Number(form.pricePerNight);
         if (form.totalRooms) docData.totalRooms = Number(form.totalRooms);
         if (form.roomTypes.length) docData.roomTypes = form.roomTypes;
+      }
+      // Include coordinates if set
+      if (lat != null && lng != null) {
+        docData.lat = lat;
+        docData.lng = lng;
       }
       const docRef = await addDoc(collection(db, "listings"), docData);
       router.push(`/listings/${docRef.id}`);
@@ -311,6 +330,34 @@ export default function AddListingPage() {
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
               </div>
+            </div>
+
+            {/* ── Map Location Picker ── */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setMapOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-3.5 bg-white"
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-semibold text-slate-700">Pin Location on Map</span>
+                  <span className="text-xs text-slate-400">(optional)</span>
+                  {lat != null && lng != null && (
+                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full">✓ Set</span>
+                  )}
+                </div>
+                {mapOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+              </button>
+              {mapOpen && (
+                <div className="px-4 pb-4 pt-2 bg-slate-50 border-t border-slate-100">
+                  <MapPicker
+                    lat={lat}
+                    lng={lng}
+                    onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* ── Room Details (Hotel / Resort only) ── */}

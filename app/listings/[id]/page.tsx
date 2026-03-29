@@ -48,6 +48,8 @@ interface Listing {
   area?: number;
   totalRooms?: number;
   roomTypes?: string[];
+  lat?: number;
+  lng?: number;
 }
 
 interface Review {
@@ -427,7 +429,11 @@ export default function ListingDetailPage() {
             <iframe
               title={`Map preview for ${listing.name}`}
               className="w-full h-full border-0 pointer-events-none"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`}
+              src={
+                listing.lat && listing.lng
+                  ? `https://maps.google.com/maps?q=${listing.lat},${listing.lng}&output=embed&z=16`
+                  : `https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}&output=embed&z=15`
+              }
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
