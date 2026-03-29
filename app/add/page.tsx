@@ -254,21 +254,23 @@ export default function AddListingPage() {
           <h1 className="text-xl font-bold text-slate-800 mb-1">Add New Listing</h1>
           <p className="text-slate-500 text-sm mb-6">Share a hotel, resort or restaurant in Kerala</p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Place Name *</label>
-                <input
-                  name="name"
-                  data-testid="input-name"
-                  required
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="e.g. Green Valley Resort"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Place Name — full width */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Place Name *</label>
+              <input
+                name="name"
+                data-testid="input-name"
+                required
+                value={form.name}
+                onChange={handleChange}
+                placeholder="e.g. Green Valley Resort"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
 
+            {/* Type + District — side by side (short selects) */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Type *</label>
                 <select
@@ -276,14 +278,13 @@ export default function AddListingPage() {
                   data-testid="select-type"
                   value={form.type}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
                 >
                   <option>Hotel</option>
                   <option>Resort</option>
                   <option>Restaurant</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">District *</label>
                 <select
@@ -291,71 +292,75 @@ export default function AddListingPage() {
                   data-testid="select-district"
                   value={form.district}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
                 >
                   {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
                 </select>
               </div>
+            </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
-                <textarea
-                  name="description"
-                  data-testid="textarea-description"
-                  required
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Describe the place — facilities, specialties, what makes it unique..."
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
-                />
-              </div>
+            {/* Description — full width */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
+              <textarea
+                name="description"
+                data-testid="textarea-description"
+                required
+                value={form.description}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Describe the place — facilities, specialties, what makes it unique..."
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+              />
+            </div>
 
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Address *</label>
+            {/* Address — full width */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Address *</label>
+              <input
+                name="address"
+                data-testid="input-address"
+                required
+                value={form.address}
+                onChange={handleChange}
+                placeholder="Full address or location"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
+
+            {/* Phone — full width */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input
+                name="phone"
+                data-testid="input-phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="+91 98765 43210"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
+
+            {/* Google Maps Link — full width */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Google Maps Link
+                <span className="ml-1.5 text-xs text-slate-400 font-normal">(optional)</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
                 <input
-                  name="address"
-                  data-testid="input-address"
-                  required
-                  value={form.address}
+                  name="mapsLink"
+                  value={form.mapsLink}
                   onChange={handleChange}
-                  placeholder="Full address or location"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  placeholder="https://maps.app.goo.gl/..."
+                  type="url"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                <input
-                  name="phone"
-                  data-testid="input-phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
-              </div>
-
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Google Maps Link
-                  <span className="ml-1.5 text-xs text-slate-400 font-normal">(optional — share link from Google Maps app)</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
-                  <input
-                    name="mapsLink"
-                    value={form.mapsLink}
-                    onChange={handleChange}
-                    placeholder="https://maps.app.goo.gl/..."
-                    type="url"
-                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                  />
-                </div>
-                {form.mapsLink && !/^https:\/\/(maps\.app\.goo\.gl|maps\.google\.com|goo\.gl)/.test(form.mapsLink) && (
-                  <p className="text-xs text-red-500 mt-1">Please paste a valid Google Maps link</p>
-                )}
-              </div>
+              {form.mapsLink && !/^https:\/\/(maps\.app\.goo\.gl|maps\.google\.com|goo\.gl)/.test(form.mapsLink) && (
+                <p className="text-xs text-red-500 mt-1">Please paste a valid Google Maps link</p>
+              )}
             </div>
 
             {/* ── Map Location Picker ── */}
