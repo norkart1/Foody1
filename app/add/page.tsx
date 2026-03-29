@@ -218,6 +218,10 @@ export default function AddListingPage() {
         docData.lat = lat;
         docData.lng = lng;
       }
+      // Include Google Maps link if provided
+      if (form.mapsLink.trim()) {
+        docData.mapsLink = form.mapsLink.trim();
+      }
       const docRef = await addDoc(collection(db, "listings"), docData);
       router.push(`/listings/${docRef.id}`);
     } catch (err) {
@@ -330,6 +334,27 @@ export default function AddListingPage() {
                   placeholder="+91 98765 43210"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                 />
+              </div>
+
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Google Maps Link
+                  <span className="ml-1.5 text-xs text-slate-400 font-normal">(optional — share link from Google Maps app)</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                  <input
+                    name="mapsLink"
+                    value={form.mapsLink}
+                    onChange={handleChange}
+                    placeholder="https://maps.app.goo.gl/..."
+                    type="url"
+                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                </div>
+                {form.mapsLink && !/^https:\/\/(maps\.app\.goo\.gl|maps\.google\.com|goo\.gl)/.test(form.mapsLink) && (
+                  <p className="text-xs text-red-500 mt-1">Please paste a valid Google Maps link</p>
+                )}
               </div>
             </div>
 

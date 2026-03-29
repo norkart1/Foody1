@@ -50,6 +50,7 @@ interface Listing {
   roomTypes?: string[];
   lat?: number;
   lng?: number;
+  mapsLink?: string;
 }
 
 interface Review {
@@ -424,7 +425,19 @@ export default function ListingDetailPage() {
             View Map
           </Link>
         </div>
-        <Link href={`/listings/${listing.id}/map`} className="block">
+        {/* Map preview — tapping opens Google Maps or internal map page */}
+        <a
+          href={
+            listing.mapsLink
+              ? listing.mapsLink
+              : listing.lat && listing.lng
+              ? `https://maps.google.com/maps?q=${listing.lat},${listing.lng}`
+              : `https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
           <div className="relative h-44 rounded-2xl overflow-hidden border border-gray-100">
             <iframe
               title={`Map preview for ${listing.name}`}
@@ -437,15 +450,31 @@ export default function ListingDetailPage() {
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
             />
-            {/* Transparent overlay — catches tap and navigates to full map */}
+            {/* Transparent overlay — catches tap, opens Google Maps */}
             <div className="absolute inset-0 bg-transparent cursor-pointer" />
-            {/* Tap hint badge */}
+            {/* Badge */}
             <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-full shadow flex items-center gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-green-500" />
-              Tap to expand
+              Open in Maps
             </div>
           </div>
-        </Link>
+        </a>
+        {/* Direct Google Maps button */}
+        <a
+          href={
+            listing.mapsLink
+              ? listing.mapsLink
+              : listing.lat && listing.lng
+              ? `https://maps.google.com/maps?q=${listing.lat},${listing.lng}`
+              : `https://maps.google.com/maps?q=${encodeURIComponent(`${listing.address}, ${listing.district}, Kerala, India`)}`
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2.5 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm font-semibold active:bg-green-100 transition-colors"
+        >
+          <MapPin className="w-4 h-4" />
+          Open in Google Maps
+        </a>
       </div>
 
       {/* ── Reviews ── */}
