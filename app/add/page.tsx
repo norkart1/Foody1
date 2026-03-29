@@ -105,6 +105,7 @@ export default function AddListingPage() {
     description: "",
     address: "",
     phone: "",
+    mapsLink: "",
     // Room details (Hotel / Resort only)
     pricePerNight: "",
     totalRooms: "",
