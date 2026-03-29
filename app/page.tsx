@@ -523,13 +523,17 @@ export default function HomePage() {
 
       {/* ── Notification Drawer ── */}
       {notifOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setNotifOpen(false)} />
-          <div className="relative bg-white rounded-t-3xl max-h-[75vh] flex flex-col">
-            <div className="flex justify-center pt-3 pb-1">
+        <div className="fixed inset-0 z-[70] flex flex-col justify-end">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={() => setNotifOpen(false)} />
+          {/* Sheet — sits above the bottom nav (nav ≈ 65 px) */}
+          <div className="relative bg-white rounded-t-3xl flex flex-col" style={{ maxHeight: "calc(80vh - 65px)" }}>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 bg-slate-200 rounded-full" />
             </div>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-slate-700" />
                 <h2 className="text-base font-extrabold text-slate-800">Notifications</h2>
@@ -553,7 +557,8 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-            <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2 pb-10">
+            {/* Scrollable list */}
+            <div className="overflow-y-auto flex-1 px-4 py-3 space-y-2">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
@@ -568,9 +573,9 @@ export default function HomePage() {
                     key={n.id}
                     href={`/listings/${n.listingId}`}
                     onClick={() => setNotifOpen(false)}
-                    className="flex items-start gap-3 bg-green-50 rounded-2xl p-3"
+                    className={`flex items-start gap-3 rounded-2xl p-3 ${n.read ? "bg-slate-50" : "bg-green-50 border border-green-100"}`}
                   >
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shrink-0 shadow-sm border border-slate-100">
                       {TYPE_EMOJI[n.type] || "🏠"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -582,6 +587,9 @@ export default function HomePage() {
                         <span className="text-xs text-slate-300 ml-auto shrink-0">{timeAgo(n.timestamp)}</span>
                       </div>
                     </div>
+                    {!n.read && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full shrink-0 mt-1" />
+                    )}
                   </Link>
                 ))
               )}
