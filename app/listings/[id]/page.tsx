@@ -221,7 +221,7 @@ export default function ListingDetailPage() {
   const facilities = listing.facilities || [];
 
   return (
-    <div className="min-h-screen bg-white pb-28">
+    <div className="min-h-screen bg-white pb-32">
 
       {/* ── Lightbox ── */}
       {lightboxIndex >= 0 && photos.length > 0 && (
@@ -583,7 +583,7 @@ export default function ListingDetailPage() {
       </div>
 
       {/* ── Fixed Bottom Bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-[55] bg-white border-t border-gray-100 px-5 py-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
           {listing.price ? (
             <>

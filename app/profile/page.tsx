@@ -46,9 +46,9 @@ function Sheet({ open, onClose, title, children }: {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[70] flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-8 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-extrabold text-gray-900">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
